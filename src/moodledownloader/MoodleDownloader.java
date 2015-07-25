@@ -354,64 +354,62 @@ public class MoodleDownloader {
     }
 
     private void downloadResource(String name, String link, String type) throws IOException {
-        String ilink, iname;
         boolean downloaded = false;
-        
         Document resource = null;
-        
-        iname = String.format("%03d", idx) + " [Fitxer] " + name + type;
+        String ilink;
+        String iname = String.format("%03d", idx) + " [Fitxer] " + name + type;
 
         mainframe.setProgressBar(idx);
         mainframe.setOut("["+idx+"/"+nlinks+"] [Fitxer] " + name + type);
         
         downloadFile(iname, link);
-        downloaded = true;
-        
-        if(!downloaded) {
-            Elements links = resource.select("a[href]");
-        
-            if(links.size()>0) {
-                for (Element e : links) {
-                    ilink = e.attr("href");
-                    if(e.toString().contains("/mod_resource/")) {
-                        downloaded = true;
-                        downloadFile(iname, ilink);
-                    }
-                }
-            }
-        }
-        
-        if(!downloaded) {
-            Response response;
-            
-            if(nocookies) {
-                response = Jsoup.connect(link)
-                    .method(Method.GET)
-                    .cookies(cookies)
-                    .maxBodySize(0)
-                    .timeout(0)
-                    .execute();
-            } else {
-                response = Jsoup.connect(link)
-                    .method(Method.GET)
-                    .cookies(cookies)
-                    .maxBodySize(0)
-                    .timeout(0)
-                    .execute();
-            }
-            resource = response.parse();
-            
-            Elements eimg = resource.select("img.resourceimage");
-            
-            for (Element e : eimg) {
-                downloaded = true;
-                ilink = e.attr("src");
-                iname = idx + " [Fitxer] " + name + type;
-                downloadFile(iname, ilink);
-            }
-        }
-        
-        if(!downloaded) downloadFile(iname, link);
+//        downloaded = true;
+//        
+//        if(!downloaded) {
+//            Elements links = resource.select("a[href]");
+//        
+//            if(links.size()>0) {
+//                for (Element e : links) {
+//                    ilink = e.attr("href");
+//                    if(e.toString().contains("/mod_resource/")) {
+//                        downloaded = true;
+//                        downloadFile(iname, ilink);
+//                    }
+//                }
+//            }
+//        }
+//        
+//        if(!downloaded) {
+//            Response response;
+//            
+//            if(nocookies) {
+//                response = Jsoup.connect(link)
+//                    .method(Method.GET)
+//                    .cookies(cookies)
+//                    .maxBodySize(0)
+//                    .timeout(0)
+//                    .execute();
+//            } else {
+//                response = Jsoup.connect(link)
+//                    .method(Method.GET)
+//                    .cookies(cookies)
+//                    .maxBodySize(0)
+//                    .timeout(0)
+//                    .execute();
+//            }
+//            resource = response.parse();
+//            
+//            Elements eimg = resource.select("img.resourceimage");
+//            
+//            for (Element e : eimg) {
+//                downloaded = true;
+//                ilink = e.attr("src");
+//                iname = idx + " [Fitxer] " + name + type;
+//                downloadFile(iname, ilink);
+//            }
+//        }
+//        
+//        if(!downloaded) downloadFile(iname, link);
     }
     
     private void downloadFile(String name, String link) throws IOException {
