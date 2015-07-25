@@ -367,12 +367,9 @@ public class MoodleDownloader {
         downloadFile(iname, link);
         downloaded = true;
         
-        Elements links = null;
-        
         if(!downloaded) {
-            links = resource.select("a[href]");
+            Elements links = resource.select("a[href]");
         
-            // Resource has a subpage
             if(links.size()>0) {
                 for (Element e : links) {
                     ilink = e.attr("href");
@@ -384,7 +381,6 @@ public class MoodleDownloader {
             }
         }
         
-        // Resource has a intermediate page
         if(!downloaded) {
             Response response;
             
@@ -395,8 +391,7 @@ public class MoodleDownloader {
                     .maxBodySize(0)
                     .timeout(0)
                     .execute();
-            }
-            else {
+            } else {
                 response = Jsoup.connect(link)
                     .method(Method.GET)
                     .cookies(cookies)
