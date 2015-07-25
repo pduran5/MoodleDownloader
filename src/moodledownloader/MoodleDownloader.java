@@ -75,11 +75,6 @@ public class MoodleDownloader {
         Document doc = response.parse();
         cookies = response.cookies();
         
-        Elements sitename = doc.select("a.mainbrand");
-        
-        if (sitename.size()>0) folder = sitename.html();
-        else folder = "Moodle";
-        
         if(doc.toString().contains("loginform")) {
             nocookies = false;
             
@@ -120,11 +115,11 @@ public class MoodleDownloader {
             cookies.put(cookieuser, cookiesession);
             
             response = Jsoup.connect(moodleURL)
-                    .method(Method.GET)
-                    .cookies(cookies)
-                    .maxBodySize(0)
-                    .timeout(0)
-                    .execute();
+                            .method(Method.GET)
+                            .cookies(cookies)
+                            .maxBodySize(0)
+                            .timeout(0)
+                            .execute();
             doc = response.parse();
         }
         
