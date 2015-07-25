@@ -216,8 +216,13 @@ public class MoodleDownloader {
         for (Element e : links) {
             if (e.toString().contains("/pluginfile.php/")) {
                 String lnk = e.attr("href");
-                String nam = String.format("%03d", idx) + " [Fitxer] " + e.select("img").attr("title");
-                mainframe.setOut("["+idx+"/"+String.format("%03d", nlinks)+"] [Fitxer] " + e.select("img").attr("title"));
+                String nam = null;
+                
+                if(e.textNodes().size() > 0) {
+                    nam = String.format("%03d", idx) + " [Fitxer] " + e.textNodes().get(0);
+                    mainframe.setOut("["+idx+"/"+nlinks+"] [Fitxer] " + e.textNodes().get(0));
+                }
+                
                 downloadFile(nam, lnk);
             }
         }
@@ -238,6 +243,7 @@ public class MoodleDownloader {
 
         PrintWriter fitxer = new PrintWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [URL] " + name.replaceAll("[()']", "") + ".url"));
         Elements content = urlcontent.select("div.urlworkaround > a");
+        // TODO: Revisar select de frame, ya que falla si abre nueva web con frames
         Elements frame = urlcontent.select("frame");
 
         if(content.size()>0) {
@@ -256,6 +262,8 @@ public class MoodleDownloader {
             fitxer.println("[InternetShortcut]");
             fitxer.println("URL="+urlcontent.location());
         }
+
+        fitxer.close();
     }
 
     private void downloadPage(String name, String link) throws IOException {
