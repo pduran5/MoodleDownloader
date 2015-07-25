@@ -28,7 +28,6 @@ import org.jsoup.select.Elements;
 public class MoodleDownloader {
     
     private int idx, nlinks;
-    private boolean nocookies;
     private String folder, moodleURL;
     private Map<String, String> cookies;
     
@@ -63,39 +62,23 @@ public class MoodleDownloader {
     }
 
     private Document moodleLogin() throws IOException {
-        nocookies = true;
-        
         trustEveryone();
         
-        Response response = Jsoup.connect(moodleURL)
-                .method(Method.GET)
-                .maxBodySize(0)
-                .timeout(0)
-                .execute();
+        Response response = Jsoup.connect(moodleURL).method(Method.GET).maxBodySize(0).timeout(0).execute();
         Document doc = response.parse();
         cookies = response.cookies();
         
         if(doc.toString().contains("loginform")) {
-            nocookies = false;
-            
             String loginURL = doc.baseUri();
 
-            response = Jsoup.connect(loginURL)
-                    .method(Method.GET)
-                    .maxBodySize(0)
-                    .timeout(0)
-                    .execute();
+            response = Jsoup.connect(loginURL).method(Method.GET).maxBodySize(0).timeout(0).execute();
             doc = response.parse();
             cookies = response.cookies();
 
             response = Jsoup.connect(loginURL)
                     .data("username", mainframe.getUsername())
                     .data("password", mainframe.getPassword())
-                    .cookies(cookies)
-                    .maxBodySize(0)
-                    .timeout(0)
-                    .method(Method.POST)
-                    .execute();
+                    .cookies(cookies).maxBodySize(0).timeout(0).method(Method.POST).execute();
             doc = response.parse();
             
             Map <String, String> tmpcookies; 
@@ -114,12 +97,7 @@ public class MoodleDownloader {
             
             cookies.put(cookieuser, cookiesession);
             
-            response = Jsoup.connect(moodleURL)
-                            .method(Method.GET)
-                            .cookies(cookies)
-                            .maxBodySize(0)
-                            .timeout(0)
-                            .execute();
+            response = Jsoup.connect(moodleURL).method(Method.GET).cookies(cookies).maxBodySize(0).timeout(0).execute();
             doc = response.parse();
         }
         
@@ -204,13 +182,6 @@ public class MoodleDownloader {
         }
     }
 
-    private Document get(String url) throws IOException {
-        Connection connection = Jsoup.connect(url);
-        Response response = connection.execute();
-        connection.cookies(response.cookies());
-        return connection.get();
-    }
-
     private void trustEveryone() {
         TrustManager[] trustAllCerts = new TrustManager[]{
             new X509TrustManager() {
@@ -239,11 +210,7 @@ public class MoodleDownloader {
         mainframe.setProgressBar(idx);
         mainframe.setOut("["+idx+"/"+nlinks+"] [Carpeta] " + name);
         
-        Document carpeta;
-
-        if(nocookies) carpeta = Jsoup.connect(link).maxBodySize(0).timeout(0).get();
-        else carpeta = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
-        
+        Document carpeta = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
         Elements links = carpeta.select("a[href]");
 
         for (Element e : links) {
@@ -267,32 +234,27 @@ public class MoodleDownloader {
         mainframe.setProgressBar(idx);
         mainframe.setOut("["+idx+"/"+nlinks+"] [URL] " + name);
 
-        Document urlcontent;
+        Document urlcontent = Jsoup.connect(link).cookies(cookies).timeout(0).maxBodySize(0).get();
 
-        if(nocookies) urlcontent = Jsoup.connect(link).timeout(0).maxBodySize(0).get();
-        else urlcontent = Jsoup.connect(link).cookies(cookies).timeout(0).maxBodySize(0).get();
-
+        PrintWriter fitxer = new PrintWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [URL] " + name.replaceAll("[()']", "") + ".url"));
         Elements content = urlcontent.select("div.urlworkaround > a");
         Elements frame = urlcontent.select("frame");
 
-        try (PrintWriter fitxer = new PrintWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [URL] " + name.replaceAll("[()']", "") + ".url"))) {
-            if(content.size()>0) {
-                String resourcelink = content.attr("href");
-                fitxer.println("[InternetShortcut]");
-                fitxer.println("URL="+resourcelink);
-            } else if(frame.size()>0) {
-                String resourcelink;
-                for (Element e : frame) {
-                    resourcelink = e.attr("src");
-                    if(!resourcelink.contains("frameset")) {
-                        fitxer.println("[InternetShortcut]");
-                        fitxer.println("URL="+resourcelink);
-                    }
+        if(content.size()>0) {
+            fitxer.println("[InternetShortcut]");
+            fitxer.println("URL="+content.attr("href"));
+        } else if(frame.size()>0) {
+            String resourcelink;
+            for (Element e : frame) {
+                resourcelink = e.attr("src");
+                if(!resourcelink.contains("frameset")) {
+                    fitxer.println("[InternetShortcut]");
+                    fitxer.println("URL="+resourcelink);
                 }
-            } else {
-                fitxer.println("[InternetShortcut]");
-                fitxer.println("URL="+urlcontent.location());
             }
+        } else {
+            fitxer.println("[InternetShortcut]");
+            fitxer.println("URL="+urlcontent.location());
         }
     }
 
@@ -300,10 +262,7 @@ public class MoodleDownloader {
         mainframe.setProgressBar(idx);
         mainframe.setOut("["+idx+"/"+nlinks+"] [Pàgina] " + name);
         
-        Document forum = null;
-        
-        if(nocookies) forum = Jsoup.connect(link).maxBodySize(0).timeout(0).get();
-        else forum = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
+        Document forum = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
         Elements content = forum.select("div.box > div.no-overflow");
 
         BufferedWriter fileforum = new BufferedWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [Pàgina] " + name + ".html"));
@@ -315,10 +274,7 @@ public class MoodleDownloader {
         mainframe.setProgressBar(idx);
         mainframe.setOut("["+idx+"/"+nlinks+"] [Tasca] " + name);
         
-        Document forum=null;
-        
-        if(nocookies) forum = Jsoup.connect(link).maxBodySize(0).timeout(0).get();
-        else forum = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
+        Document forum = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
         Elements content = forum.select("div.box > div.no-overflow");
 
         BufferedWriter fileforum = new BufferedWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [Tasca] " + name + ".html"));
@@ -341,11 +297,7 @@ public class MoodleDownloader {
         mainframe.setProgressBar(idx);
         mainframe.setOut("["+idx+"/"+nlinks+"] [Fòrum] " + name);
         
-        Document forum;
-        
-        if(nocookies) forum = Jsoup.connect(link).maxBodySize(0).timeout(0).get();
-        else forum = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
-
+        Document forum = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
         Elements content = forum.select("div.box > div.no-overflow");
 
         BufferedWriter fileforum = new BufferedWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [Fòrum] " + name + ".html"));
@@ -363,71 +315,12 @@ public class MoodleDownloader {
         mainframe.setOut("["+idx+"/"+nlinks+"] [Fitxer] " + name + type);
         
         downloadFile(iname, link);
-//        downloaded = true;
-//        
-//        if(!downloaded) {
-//            Elements links = resource.select("a[href]");
-//        
-//            if(links.size()>0) {
-//                for (Element e : links) {
-//                    ilink = e.attr("href");
-//                    if(e.toString().contains("/mod_resource/")) {
-//                        downloaded = true;
-//                        downloadFile(iname, ilink);
-//                    }
-//                }
-//            }
-//        }
-//        
-//        if(!downloaded) {
-//            Response response;
-//            
-//            if(nocookies) {
-//                response = Jsoup.connect(link)
-//                    .method(Method.GET)
-//                    .cookies(cookies)
-//                    .maxBodySize(0)
-//                    .timeout(0)
-//                    .execute();
-//            } else {
-//                response = Jsoup.connect(link)
-//                    .method(Method.GET)
-//                    .cookies(cookies)
-//                    .maxBodySize(0)
-//                    .timeout(0)
-//                    .execute();
-//            }
-//            resource = response.parse();
-//            
-//            Elements eimg = resource.select("img.resourceimage");
-//            
-//            for (Element e : eimg) {
-//                downloaded = true;
-//                ilink = e.attr("src");
-//                iname = idx + " [Fitxer] " + name + type;
-//                downloadFile(iname, ilink);
-//            }
-//        }
-//        
-//        if(!downloaded) downloadFile(iname, link);
     }
     
     private void downloadFile(String name, String link) throws IOException {
         Response resultImageResponse;
 
-        if(nocookies) {
-            download(link, name);
-            return;
-        }
-        else {
-            resultImageResponse = Jsoup.connect(link)
-                                       .cookies(cookies)
-                                       .ignoreContentType(true)
-                                       .maxBodySize(0)
-                                       .timeout(0)
-                                       .execute();   
-        }
-
+        resultImageResponse = Jsoup.connect(link).cookies(cookies).ignoreContentType(true).maxBodySize(0).timeout(0).execute();   
         Document doc = resultImageResponse.parse();
 
         if(doc.html().contains("resourcecontent resourcepdf"))
