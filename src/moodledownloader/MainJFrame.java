@@ -187,9 +187,12 @@ public class MainJFrame extends javax.swing.JFrame {
         descargarButton.setEnabled(false);
         outTextArea.setText(null);
         
-        Runnable task = () -> {
-            MoodleDownloader md = new MoodleDownloader();
-            md.downloadMoodle(moodleURLTextField.getText());
+        Runnable task = new Runnable(){
+            @Override
+            public void run(){
+                MoodleDownloader md = new MoodleDownloader();
+                md.downloadMoodle(moodleURLTextField.getText());
+            }
         };
         
         new Thread(task).start();

@@ -17,7 +17,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import org.jsoup.Connection;
 import org.jsoup.Connection.Method;
 import org.jsoup.Connection.Response;
 import org.jsoup.Jsoup;
@@ -53,11 +52,13 @@ public class MoodleDownloader {
     private void countLinks(Document doc) {
         Elements links = doc.select("a[href]");
         nlinks=0;
-        links.stream().filter((e) -> (e.toString().contains("/assign/") || e.toString().contains("/folder/")
-                || e.toString().contains("/forum/") || e.toString().contains("/page/")
-                || e.toString().contains("/resource/") || e.toString().contains("/url/"))).forEach((_item) -> {
-                    nlinks++;
-                });
+        for (Element e : links) {
+            if (e.toString().contains("/assign/") || e.toString().contains("/folder/")
+                    || e.toString().contains("/forum/") || e.toString().contains("/page/")
+                    || e.toString().contains("/resource/") || e.toString().contains("/url/")) {
+                nlinks++;
+            }
+        }
         mainframe.setMaximumProgressBar(nlinks);
     }
 
@@ -200,7 +201,12 @@ public class MoodleDownloader {
             SSLContext sc = SSLContext.getInstance("SSL");
             sc.init(null, trustAllCerts, new java.security.SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-            HostnameVerifier allHostsValid = (String hostname, SSLSession session) -> true;
+            HostnameVerifier allHostsValid = new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
             HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
         }
         catch (NoSuchAlgorithmException | KeyManagementException e) {}
