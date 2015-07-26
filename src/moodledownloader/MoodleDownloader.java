@@ -1,6 +1,7 @@
 package moodledownloader;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -109,7 +110,7 @@ public class MoodleDownloader {
 
     private void parseLinks(Document doc) throws IOException {
         Elements links = doc.select("a[href]");
-        String name, link, index, type="";
+        String name, link, type=null;
         idx=1;
 
         for (Element e : links) {
@@ -304,10 +305,6 @@ public class MoodleDownloader {
     }
 
     private void downloadForum(String name, String link) throws IOException {
-        String iname;
-
-        iname = idx + " [Fòrum] " + name + ".html";
-        
         mainframe.setProgressBar(idx);
         mainframe.setOut("["+idx+"/"+nlinks+"] [Fòrum] " + name);
         
@@ -320,9 +317,6 @@ public class MoodleDownloader {
     }
 
     private void downloadResource(String name, String link, String type) throws IOException {
-        boolean downloaded = false;
-        Document resource = null;
-        String ilink;
         String iname = String.format("%03d", idx) + " [Fitxer] " + name + type;
 
         mainframe.setProgressBar(idx);
@@ -332,9 +326,7 @@ public class MoodleDownloader {
     }
     
     private void downloadFile(String name, String link) throws IOException {
-        Response resultImageResponse;
-
-        resultImageResponse = Jsoup.connect(link).cookies(cookies).ignoreContentType(true).maxBodySize(0).timeout(0).execute();   
+        Response resultImageResponse = Jsoup.connect(link).cookies(cookies).ignoreContentType(true).maxBodySize(0).timeout(0).execute();   
         Document doc = resultImageResponse.parse();
 
         if(doc.html().contains("resourcecontent resourcepdf"))
@@ -342,16 +334,15 @@ public class MoodleDownloader {
         else if(doc.html().contains("resourceworkaround"))
             downloadFile(name, doc.select(".resourceworkaround > a").attr("href"));
         else {
-            FileOutputStream out = new FileOutputStream(new java.io.File(folder, name));
+            FileOutputStream out = new FileOutputStream(new File(folder, name));
             out.write(resultImageResponse.bodyAsBytes());
         }
     }
     
     private void download(String url, String filename) throws IOException {
-        URL website = new URL(url);
-        ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-        FileOutputStream fos = new FileOutputStream(new java.io.File(folder, filename));
-        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);  
+        ReadableByteChannel rbc = Channels.newChannel(new URL(url).openStream());
+        FileOutputStream fos = new FileOutputStream(new File(folder, filename));
+        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
     }
 
 }
