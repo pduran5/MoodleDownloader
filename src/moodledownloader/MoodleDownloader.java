@@ -183,6 +183,7 @@ public class MoodleDownloader {
         }
     }
 
+    
     private void trustEveryone() {
         TrustManager[] trustAllCerts = new TrustManager[]{
             new X509TrustManager() {
@@ -223,11 +224,11 @@ public class MoodleDownloader {
             for (Element e : links) {
                 if (e.toString().contains("/pluginfile.php/")) {
                     String lnk = e.attr("href");
-                    String nam = null;
+                    String nam = "";
 
-                    if(e.textNodes().size() > 0) {
-                        nam = String.format("%03d", idx) + " [Fitxer] " + e.textNodes().get(0);
-                        mainframe.setOut("["+idx+"/"+nlinks+"] [Fitxer] " + e.textNodes().get(0));
+                    if(!e.text().isEmpty()) {
+                        nam = String.format("%03d", idx) + " [Fitxer] " + e.text();
+                        mainframe.setOut("["+idx+"/"+nlinks+"] [Fitxer] " + e.text());
                     }
 
                     downloadFile(nam, lnk);
