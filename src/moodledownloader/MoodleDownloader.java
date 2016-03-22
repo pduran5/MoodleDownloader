@@ -6,9 +6,13 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -39,8 +43,35 @@ public class MoodleDownloader {
         moodleURL = url;
         Document doc = moodleLogin();
         countLinks(doc);
+        generatePDF(doc);
         parseLinks(doc);
         mainframe.showCompleted();
+    }
+    
+    private void generatePDF(Document doc) {
+        mainframe.setOut("[0/" + nlinks + "] Moodle.pdf");
+        
+        String command = "wkhtmltopdf ";
+        
+        for (Map.Entry<String, String> cookie : cookies.entrySet()) {
+            String key = cookie.getKey();
+            String value = cookie.getValue();
+            command += "--cookie " + key + " " + value + " ";
+        }
+        
+        command += moodleURL + " \"000 Moodle.pdf\"";
+        String source = System.getProperty("user.dir")+"\\000 Moodle.pdf";
+        String target = folder + "\\000 Moodle.pdf";
+        
+        try {
+            Process proc = Runtime.getRuntime().exec(command);
+            proc.waitFor();
+            Files.move(Paths.get(source), Paths.get(target));
+        } catch (IOException | InterruptedException ex) {
+            Logger.getLogger(MoodleDownloader.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        
     }
 
     private void countLinks(Document doc) {
@@ -118,38 +149,32 @@ public class MoodleDownloader {
             String content = e.toString();
             
             if (content.contains("/assign/")) {
-                if(name.length() > 6)
-                    if(name.substring(name.length()-6).equals(" Tasca"))
-                        name = name.substring(0, name.length()-6);
+                if(name.contains(" Tarea")) name=name.replace(" Tarea", "");
+                if(name.contains(" Tasca")) name=name.replace(" Tasca", "");
                 downloadAssignment(name, link);
                 idx++;
             }
             if (content.contains("/folder/")) {
-                if(name.length() > 8)
-                    if(name.substring(name.length()-8).equals(" Carpeta"))
-                        name = name.substring(0, name.length()-8);
+                if(name.contains(" Carpeta")) name=name.replace(" Carpeta", "");
                 downloadFolder(name, link);
                 idx++;
             }
             if (content.contains("/forum/")) {
-                if(name.length() > 6)
-                    if(name.substring(name.length()-6).equals(" Fòrum"))
-                        name = name.substring(0, name.length()-6);
+                if(name.contains(" Foro")) name=name.replace(" Foro", "");
+                if(name.contains(" Fòrum")) name=name.replace(" Fòrum", "");    
                 downloadForum(name, link);
                 idx++;
             }
             if (content.contains("/page/")) {
-                if(name.length() > 7)
-                    if(name.substring(name.length()-7).equals(" Pàgina"))
-                        name = name.substring(0, name.length()-7);
+                if(name.contains(" Página")) name=name.replace(" Página", "");
+                if(name.contains(" Pàgina")) name=name.replace(" Pàgina", "");
                 downloadPage(name, link);
                 idx++;
 
             }
             if (content.contains("/resource/")) {
-                if(name.length() > 7)
-                    if(name.substring(name.length()-7).equals(" Fitxer"))
-                        name = name.substring(0, name.length()-7);
+                if(name.contains(" Archivo")) name=name.replace(" Archivo", "");
+                if(name.contains(" Fitxer")) name=name.replace(" Fitxer", "");
                 
                 if(content.contains("archive-")) type=".zip";
                 if(content.contains("avi-")) type=".avi";
@@ -169,14 +194,13 @@ public class MoodleDownloader {
                 if(content.contains("text-")) type=".txt";
                 if(content.contains("unknown-")) type="";
                 if(content.contains("writer-")) type=".odt";
+                if(type==null) type=".pdf";
                 
                 downloadResource(name, link, type);
                 idx++;
             }
             if (content.contains("/url/")) {
-                if(name.length() > 4)
-                    if(name.substring(name.length()-4).equals(" URL"))
-                        name = name.substring(0, name.length()-4);
+                if(name.contains(" URL")) name=name.replace(" URL", "");
                 downloadURL(name, link);
                 idx++;
             }
