@@ -408,7 +408,6 @@ public class MoodleDownloader {
                 resultImageResponse = Jsoup.connect(link).ignoreContentType(true).maxBodySize(0).timeout(0).execute();
             }
             Document doc = resultImageResponse.parse();
-            if(!name.contains("itzing") && !name.contains("sics del so") && !name.contains("Equalitzador")) {
             if(doc.html().contains("resourcecontent resourcepdf"))
                 downloadFile(name, doc.select("object").attr("data"));
             else if(doc.html().contains("resourceworkaround"))
@@ -416,20 +415,6 @@ public class MoodleDownloader {
             else {
                 FileOutputStream out = new FileOutputStream(new File(folder, name));
                 out.write(resultImageResponse.bodyAsBytes());
-                
-////                String command = "wget --max-redirect 2 -O \"" + name + "\" " + link;
-////        
-////                String source = System.getProperty("user.dir")+"\\"+name;
-////                String target = folder + "\\" + name;
-////        
-////                try {
-////                    Process proc = Runtime.getRuntime().exec(command);
-////                    proc.waitFor();
-////                    Files.move(Paths.get(source), Paths.get(target));
-////                } catch (IOException | InterruptedException ex) {
-////                    Logger.getLogger(MoodleDownloader.class.getName()).log(Level.SEVERE, null, ex);
-////                }
-            }
             }
         } catch (IOException ioe) {
             System.out.println("ERROR: " + ioe.toString());
