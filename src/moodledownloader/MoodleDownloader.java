@@ -31,6 +31,7 @@ public class MoodleDownloader {
     private int idx, nlinks;
     private String folder, moodleURL;
     private Map<String, String> cookies;
+    private boolean cookiesneeded = false;
     
     private static MainJFrame mainframe;
 
@@ -53,10 +54,12 @@ public class MoodleDownloader {
         
         String command = "wkhtmltopdf ";
         
-        for (Map.Entry<String, String> cookie : cookies.entrySet()) {
-            String key = cookie.getKey();
-            String value = cookie.getValue();
-            command += "--cookie " + key + " " + value + " ";
+        if(cookiesneeded) {
+            for (Map.Entry<String, String> cookie : cookies.entrySet()) {
+                String key = cookie.getKey();
+                String value = cookie.getValue();
+                command += "--cookie " + key + " " + value + " ";
+            }
         }
         
         command += moodleURL + " \"000 Moodle.pdf\"";
@@ -97,7 +100,8 @@ public class MoodleDownloader {
             doc = response.parse();
             cookies = response.cookies();
 
-            if(doc.toString().contains("loginform")) {
+            if(doc.html().contains("loginform")) {
+                cookiesneeded = true;
                 String loginURL = doc.baseUri();
 
                 response = Jsoup.connect(loginURL).method(Method.GET).maxBodySize(0).timeout(0).execute();
@@ -128,6 +132,29 @@ public class MoodleDownloader {
 
                 response = Jsoup.connect(moodleURL).method(Method.GET).cookies(cookies).maxBodySize(0).timeout(0).execute();
                 doc = response.parse();
+                
+                if(doc.html().contains("page-user-policy")) {
+                    Elements links = doc.select("form[action]");
+                    String action="";
+                    for (Element e : links) {
+                        if (e.attr("action").contains("policy")) action = e.attr("action");                        
+                    }
+                    
+                    String sesskey="";
+                    links = doc.select("input[name=\"sesskey\"]");
+                    for (Element e : links) {
+                        sesskey = e.attr("value");
+                    }
+                    
+                    String split[] = moodleURL.split("/");
+                    String policyURL = "https://" + split[2] + "/user/" + action;
+                    
+                    response = Jsoup.connect(policyURL)
+                        .data("agree", "1")
+                        .data("sesskey", sesskey)
+                        .cookies(cookies).maxBodySize(0).timeout(0).method(Method.POST).execute();
+                    doc = response.parse();
+                }
             }
 
             folder = mainframe.getFolder();
@@ -373,9 +400,15 @@ public class MoodleDownloader {
     
     private void downloadFile(String name, String link) {
         try {
-            Response resultImageResponse = Jsoup.connect(link).cookies(cookies).ignoreContentType(true).maxBodySize(0).timeout(0).execute();   
+            Document doc1 = moodleLogin();
+            Response resultImageResponse;
+            if(cookiesneeded) {
+                resultImageResponse = Jsoup.connect(link).cookies(cookies).ignoreContentType(true).maxBodySize(0).timeout(0).execute();
+            } else {
+                resultImageResponse = Jsoup.connect(link).ignoreContentType(true).maxBodySize(0).timeout(0).execute();
+            }
             Document doc = resultImageResponse.parse();
-
+            if(!name.contains("itzing") && !name.contains("sics del so") && !name.contains("Equalitzador")) {
             if(doc.html().contains("resourcecontent resourcepdf"))
                 downloadFile(name, doc.select("object").attr("data"));
             else if(doc.html().contains("resourceworkaround"))
@@ -383,6 +416,20 @@ public class MoodleDownloader {
             else {
                 FileOutputStream out = new FileOutputStream(new File(folder, name));
                 out.write(resultImageResponse.bodyAsBytes());
+                
+////                String command = "wget --max-redirect 2 -O \"" + name + "\" " + link;
+////        
+////                String source = System.getProperty("user.dir")+"\\"+name;
+////                String target = folder + "\\" + name;
+////        
+////                try {
+////                    Process proc = Runtime.getRuntime().exec(command);
+////                    proc.waitFor();
+////                    Files.move(Paths.get(source), Paths.get(target));
+////                } catch (IOException | InterruptedException ex) {
+////                    Logger.getLogger(MoodleDownloader.class.getName()).log(Level.SEVERE, null, ex);
+////                }
+            }
             }
         } catch (IOException ioe) {
             System.out.println("ERROR: " + ioe.toString());
