@@ -7,9 +7,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,9 +33,14 @@ import org.jsoup.select.Elements;
 public class MoodleDownloader {
 
     private int idx, nlinks;
-    private String folder, moodleURL;
+    private String basefolder;
+    private String folder;
+    private String folder_tmp;
+    private String moodleURL;
     private Map<String, String> cookies;
     private boolean cookiesneeded = false;
+    private boolean inSection = false;
+    private Map<String, String> sections;
 
     private static MainJFrame mainframe;
 
@@ -43,11 +51,36 @@ public class MoodleDownloader {
 
     void downloadMoodle(String url) {
         moodleURL = url;
+        folder_tmp = "";
+        sections = new HashMap<>();
         Document doc = moodleLogin();
         countLinks(doc);
         generatePDF(doc);
         parseLinks(doc);
+        parseSections(doc);
         mainframe.showCompleted();
+    }
+
+    private void parseSections(Document doc) {
+        inSection = true;
+        basefolder = folder;
+        for (Map.Entry<String, String> entry : sections.entrySet()) {
+            mainframe.setOut("");
+            mainframe.setOut("*** Downloading section: " + entry.getValue());
+            moodleURL = entry.getKey();
+            folder_tmp = basefolder + "\\" + entry.getValue() + "\\";
+            Path path = Paths.get(folder_tmp);
+            try {
+                Files.createDirectories(path);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            doc = moodleLogin();
+            folder = folder_tmp;
+            countLinks(doc);
+            generatePDF(doc);
+            parseLinks(doc);
+        }
     }
 
     private void generatePDF(Document doc) {
@@ -65,9 +98,9 @@ public class MoodleDownloader {
             command = commandBuilder.toString();
         }
 
-        command += moodleURL + " \"000 Moodle.pdf\"";
-        String source = System.getProperty("user.dir") + "\\000 Moodle.pdf";
-        String target = folder + "\\000 Moodle.pdf";
+        command += moodleURL + " \"000 Moodle.pdf.tmp\"";
+        String source = System.getProperty("user.dir") + "\\000 Moodle.pdf.tmp";
+        String target = folder + "000 Moodle.pdf";
 
         try {
             Process proc = Runtime.getRuntime().exec(command);
@@ -83,11 +116,20 @@ public class MoodleDownloader {
     private void countLinks(Document doc) {
         Elements links = doc.select("a[href]");
         nlinks = 0;
+        String urllink;
         for (Element e : links) {
             if (e.toString().contains("/assign/") || e.toString().contains("/folder/")
                     || e.toString().contains("/forum/") || e.toString().contains("/page/")
                     || e.toString().contains("/resource/") || e.toString().contains("/url/")) {
                 nlinks++;
+            }
+            if (e.toString().contains("section=")) {
+                if (!inSection) {
+                    urllink = e.text();
+                    urllink = urllink.replaceAll("[\\\\/:*?\"<>|]", "-");
+                    urllink = urllink.replaceAll("[.]", "");
+                    sections.put(e.attr("href"), urllink);
+                }
             }
         }
         mainframe.setMaximumProgressBar(nlinks);
@@ -162,7 +204,8 @@ public class MoodleDownloader {
                 doc = response.parse();
             }
 
-            folder = mainframe.getFolder();
+            folder = folder_tmp.equals("") ? mainframe.getFolder() + "\\" : folder_tmp;
+
         } catch (IOException ioe) {
             System.out.println("ERROR: " + ioe.toString());
         }
@@ -238,7 +281,6 @@ public class MoodleDownloader {
             }
         }
     }
-
 
     private void trustEveryone() {
         TrustManager[] trustAllCerts = new TrustManager[]{
