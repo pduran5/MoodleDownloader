@@ -1,34 +1,23 @@
 package moodledownloader;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-
 import org.jsoup.Connection.Method;
 import org.jsoup.Connection.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+import javax.net.ssl.*;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MoodleDownloader {
 
@@ -55,7 +44,7 @@ public class MoodleDownloader {
         sections = new HashMap<>();
         Document doc = moodleLogin();
         countLinks(doc);
-        generatePDF(doc);
+        generatePDF();
         parseLinks(doc);
         parseSections(doc);
         mainframe.showCompleted();
@@ -78,12 +67,12 @@ public class MoodleDownloader {
             doc = moodleLogin();
             folder = folder_tmp;
             countLinks(doc);
-            generatePDF(doc);
+            generatePDF();
             parseLinks(doc);
         }
     }
 
-    private void generatePDF(Document doc) {
+    private void generatePDF() {
         mainframe.setOut("[0/" + nlinks + "] Moodle.pdf");
 
         String command = "wkhtmltopdf ";
