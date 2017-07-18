@@ -27,8 +27,8 @@ public class MoodleDownloader {
     private String folder_tmp;
     private String moodleURL;
     private Map<String, String> cookies;
-    private boolean cookiesneeded = false;
-    private boolean inSection = false;
+    private boolean cookiesneeded;
+    private boolean inSection;
     private Map<String, String> sections;
 
     private static MainJFrame mainframe;
@@ -39,6 +39,8 @@ public class MoodleDownloader {
     }
 
     void downloadMoodle(String url) {
+        cookiesneeded = false;
+        inSection = false;
         moodleURL = url;
         folder_tmp = "";
         sections = new HashMap<>();
