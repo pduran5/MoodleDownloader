@@ -1,4 +1,4 @@
-package moodledownloader;
+package descargamoodles;
 
 import org.jsoup.Connection.Method;
 import org.jsoup.Connection.Response;
@@ -9,6 +9,7 @@ import org.jsoup.select.Elements;
 
 import javax.net.ssl.*;
 import java.io.*;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,7 +20,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class MoodleDownloader {
+public class DescargaMoodles {
 
     private int idx, nlinks;
     private String basefolder;
@@ -76,8 +77,20 @@ public class MoodleDownloader {
 
     private void generatePDF() {
         mainframe.setOut("[0/" + nlinks + "] Moodle.pdf");
+        
+        String jarPath = "";
+        try {
+            jarPath = DescargaMoodles.class
+                    .getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI()
+                    .getPath();
+        } catch (URISyntaxException ex) {
+            Logger.getLogger(DescargaMoodles.class.getName()).log(Level.SEVERE, null, ex);
+        }
 
-        String command = "wkhtmltopdf ";
+        String command = System.getProperty("user.dir") + "\\wkhtmltopdf.exe ";
 
         if (cookiesneeded) {
             StringBuilder commandBuilder = new StringBuilder("wkhtmltopdf ");
@@ -98,7 +111,7 @@ public class MoodleDownloader {
             proc.waitFor();
             Files.move(Paths.get(source), Paths.get(target));
         } catch (IOException | InterruptedException ex) {
-            Logger.getLogger(MoodleDownloader.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(DescargaMoodles.class.getName()).log(Level.SEVERE, null, ex);
         }
 
 
@@ -130,26 +143,33 @@ public class MoodleDownloader {
         trustEveryone();
 
         Document doc = null;
-
+        
         try {
             Response response = Jsoup.connect(moodleURL).method(Method.GET).maxBodySize(0).timeout(0).execute();
             doc = response.parse();
             cookies = response.cookies();
-
-            if (doc.html().contains("loginform")) {
+            String logintoken ="";
+            
+            if (doc.html().contains("guestlogin")) {
                 cookiesneeded = true;
                 String loginURL = doc.baseUri();
 
-                response = Jsoup.connect(loginURL).method(Method.GET).maxBodySize(0).timeout(0).execute();
+                response = Jsoup.connect(moodleURL).method(Method.GET).maxBodySize(0).timeout(0).execute();
                 doc = response.parse();
                 cookies = response.cookies();
-
+                
+                Elements links = doc.select("input[name=\"logintoken\"]");
+                for (Element e : links) {
+                    logintoken = e.attr("value");
+                }
+                               
                 response = Jsoup.connect(loginURL)
                         .data("username", mainframe.getUsername())
                         .data("password", mainframe.getPassword())
+                        .data("logintoken", logintoken)
                         .cookies(cookies).maxBodySize(0).timeout(0).method(Method.POST).execute();
-                doc = response.parse();
-
+                doc = response.parse();              
+               
                 Map<String, String> tmpcookies;
                 tmpcookies = response.cookies();
 
@@ -168,7 +188,8 @@ public class MoodleDownloader {
 
                 response = Jsoup.connect(moodleURL).method(Method.GET).cookies(cookies).maxBodySize(0).timeout(0).execute();
                 doc = response.parse();
-
+               
+               
             }
 
             if (doc.html().contains("policy")) {
@@ -227,13 +248,13 @@ public class MoodleDownloader {
             }
             if (content.contains("/forum/")) {
                 if (name.contains(" Foro")) name = name.replace(" Foro", "");
-                if (name.contains(" Fòrum")) name = name.replace(" Fòrum", "");
-                downloadForum(name, link);
+                if (name.contains(" Fòrum")) name = name.replace(" FÃ²rum", "");
+                // downloadForum(name, link);
                 idx++;
             }
             if (content.contains("/page/")) {
-                if (name.contains(" Página")) name = name.replace(" Página", "");
-                if (name.contains(" Pàgina")) name = name.replace(" Pàgina", "");
+                if (name.contains(" Pàgina")) name = name.replace(" PÃ¡gina", "");
+                if (name.contains(" Pàgina")) name = name.replace(" PÃ gina", "");
                 downloadPage(name, link);
                 idx++;
 
@@ -318,8 +339,7 @@ public class MoodleDownloader {
                         nam = String.format("%03d", idx) + " [Fitxer] " + e.text();
                         mainframe.setOut("[" + idx + "/" + nlinks + "] [Fitxer] " + e.text());
                     }
-
-                    downloadFile(nam, lnk);
+                    downloadFile(nam, lnk, false);
                 }
             }
         } catch (IOException ioe) {
@@ -330,9 +350,9 @@ public class MoodleDownloader {
     private void downloadURL(String name, String link) {
         name = name.replaceAll("[\\\\/:*¿?\"<>|]", "-");
         name = name.replaceAll("[à]", "a");
-        name = name.replaceAll("[é]", "e");
-        name = name.replaceAll("[í]", "i");
-        name = name.replaceAll("[ó]", "o");
+        name = name.replaceAll("[è]", "e");
+        name = name.replaceAll("[ì­]", "i");
+        name = name.replaceAll("[ò]", "o");
         name = name.replaceAll("[ç]", "c");
 
         mainframe.setProgressBar(idx);
@@ -377,7 +397,7 @@ public class MoodleDownloader {
             Document forum = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
             Elements content = forum.select("div.box > div.no-overflow");
 
-            BufferedWriter fileforum = new BufferedWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [Pàgina] " + name + ".html"));
+            BufferedWriter fileforum = new BufferedWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [PÃ gina] " + name + ".html"));
             fileforum.write("<html><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />" + content.html() + "</html>");
             fileforum.close();
         } catch (IOException ioe) {
@@ -407,7 +427,7 @@ public class MoodleDownloader {
         String resourcelink = resources.attr("href");
         if (resourcelink.contains(".pdf")) {
             mainframe.setOut("[" + idx + "/" + nlinks + "] [Fitxer] " + name);
-            downloadFile(name, resourcelink);
+            downloadFile(name, resourcelink, false);
         }
     }
 
@@ -419,7 +439,7 @@ public class MoodleDownloader {
             Document forum = Jsoup.connect(link).cookies(cookies).maxBodySize(0).timeout(0).get();
             Elements content = forum.select("div.box > div.no-overflow");
 
-            BufferedWriter fileforum = new BufferedWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [Fòrum] " + name + ".html"));
+            BufferedWriter fileforum = new BufferedWriter(new FileWriter(folder + "/" + String.format("%03d", idx) + " [FÃ²rum] " + name + ".html"));
             fileforum.write("<html><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />" + content.html() + "</html>");
             fileforum.close();
         } catch (IOException ioe) {
@@ -432,27 +452,38 @@ public class MoodleDownloader {
 
         mainframe.setProgressBar(idx);
         mainframe.setOut("[" + idx + "/" + nlinks + "] [Fitxer] " + name + type);
-
-        downloadFile(iname, link);
+        
+        downloadFile(iname, link, false);
     }
 
-    private void downloadFile(String name, String link) {
+    private void downloadFile(String name, String link, boolean rWA) {
+        
         try {
-            Document doc1 = moodleLogin();
+            //Document doc1 = moodleLogin();
             Response resultImageResponse;
             if (cookiesneeded) {
                 resultImageResponse = Jsoup.connect(link).cookies(cookies).ignoreContentType(true).maxBodySize(0).timeout(0).execute();
             } else {
                 resultImageResponse = Jsoup.connect(link).ignoreContentType(true).maxBodySize(0).timeout(0).execute();
             }
-            Document doc = resultImageResponse.parse();
-            if (doc.html().contains("resourcecontent resourcepdf"))
-                downloadFile(name, doc.select("object").attr("data"));
-            else if (doc.html().contains("resourceworkaround"))
-                downloadFile(name, doc.select(".resourceworkaround > a").attr("href"));
-            else {
+            
+            Document doc = null;
+             
+            if (rWA == true) {
                 FileOutputStream out = new FileOutputStream(new File(folder, name));
                 out.write(resultImageResponse.bodyAsBytes());
+            } else {
+                doc = resultImageResponse.parse();
+            }
+            
+            if (doc != null) {
+                if (doc.html().contains("resourcecontent resourcepdf")) {
+                    downloadFile(name, doc.select("object").attr("data"), false);
+                } else if (doc.html().contains("resourceworkaround")) {
+                    downloadFile(name, doc.select(".resourceworkaround > a").attr("href"), true);
+                } else {
+                    downloadFile(name, link, true);
+                }
             }
         } catch (IOException ioe) {
             System.out.println("ERROR: " + ioe.toString());
