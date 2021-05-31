@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class DescargaMoodles {
+public class MoodleDownloader {
 
     private int idx, nlinks;
     private String basefolder;
@@ -80,14 +80,14 @@ public class DescargaMoodles {
         
         String jarPath = "";
         try {
-            jarPath = DescargaMoodles.class
+            jarPath = MoodleDownloader.class
                     .getProtectionDomain()
                     .getCodeSource()
                     .getLocation()
                     .toURI()
                     .getPath();
         } catch (URISyntaxException ex) {
-            Logger.getLogger(DescargaMoodles.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(MoodleDownloader.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         String command = System.getProperty("user.dir") + "\\wkhtmltopdf.exe ";
@@ -111,7 +111,7 @@ public class DescargaMoodles {
             proc.waitFor();
             Files.move(Paths.get(source), Paths.get(target));
         } catch (IOException | InterruptedException ex) {
-            Logger.getLogger(DescargaMoodles.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(MoodleDownloader.class.getName()).log(Level.SEVERE, null, ex);
         }
 
 
